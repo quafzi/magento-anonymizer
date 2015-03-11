@@ -8,10 +8,9 @@ USER=`grep username $PATH_TO_ROOT/app/etc/local.xml | sed 's/ *<username>\(.*\)<
 PASS=`grep password $PATH_TO_ROOT/app/etc/local.xml | sed 's/ *<password>\(.*\)<\/password>/\1/' | sed 's/<!\[CDATA\[//' | sed 's/\]\]>//'`
 NAME=`grep dbname $PATH_TO_ROOT/app/etc/local.xml | sed 's/ *<dbname>\(.*\)<\/dbname>/\1/' | sed 's/<!\[CDATA\[//' | sed 's/\]\]>//'`
 
-DEV_IDENTIFIERS=".*(dev|stage|staging|test).*"
+DEV_IDENTIFIERS=".*(dev|stage|staging|test|anonym).*"
 if [[ $NAME =~ $DEV_IDENTIFIERS ]]; then
     echo "We are on the TEST environment, everything is fine"
-    exit
 else
     echo ""
     echo "IT SEEMS THAT WE ARE ON THE PRODUCTION ENVIRONMENT!"
