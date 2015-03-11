@@ -122,5 +122,7 @@ $DBCALL -e "UPDATE eav_entity_store SET increment_last_id=10*increment_last_id"
 $DBCALL -e "UPDATE core_config_data SET value='test' WHERE value LIKE 'live'"
 $DBCALL -e "UPDATE core_config_data SET value='test' WHERE value LIKE 'prod'"
 $DBCALL -e "UPDATE core_config_data SET value=1 WHERE path LIKE '%/testmode'"
+PAYONE_TABLES=`$DBCALL -e "SHOW TABLES LIKE 'payone_config_payment_method'"`
+[ ! -z "$PAYONE_TABLES" ] && $DBCALL -e "UPDATE payone_config_payment_method SET mode='test' WHERE mode='live'"
 
 echo "Done."
