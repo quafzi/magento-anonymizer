@@ -215,15 +215,15 @@ if [ ! -z "$PAYONE_TABLES" ]; then
     read PAYONE_KEY
   fi
 
-  $DBCALL -e "UPDATE core_config_data SET value='$MID' WHERE path='payone_general/global/mid'"
-  $DBCALL -e "UPDATE core_config_data SET value='$PORTALID' WHERE path='payone_general/global/portalid'"
-  $DBCALL -e "UPDATE core_config_data SET value='$AID' WHERE path='payone_general/global/aid'"
-  $DBCALL -e "UPDATE core_config_data SET value='$KEY' WHERE path='payone_general/global/key'"
+  $DBCALL -e "UPDATE core_config_data SET value='$PAYONE_MID' WHERE path='payone_general/global/mid'"
+  $DBCALL -e "UPDATE core_config_data SET value='$PAYONE_PORTALID' WHERE path='payone_general/global/portalid'"
+  $DBCALL -e "UPDATE core_config_data SET value='$PAYONE_AID' WHERE path='payone_general/global/aid'"
+  $DBCALL -e "UPDATE core_config_data SET value='$PAYONE_KEY' WHERE path='payone_general/global/key'"
 
-  $DBCALL -e "UPDATE payone_config_payment_method SET mid='$MID' WHERE mid IS NOT NULL"
-  $DBCALL -e "UPDATE payone_config_payment_method SET portalid='$PORTALID' WHERE portalid IS NOT NULL"
-  $DBCALL -e "UPDATE payone_config_payment_method SET aid='$AID' WHERE aid IS NOT NULL"
-  $DBCALL -e "UPDATE payone_config_payment_method SET \`key\`='$KEY' WHERE \`key\` IS NOT NULL"
+  $DBCALL -e "UPDATE payone_config_payment_method SET mid='$PAYONE_MID' WHERE mid IS NOT NULL"
+  $DBCALL -e "UPDATE payone_config_payment_method SET portalid='$PAYONE_PORTALID' WHERE portalid IS NOT NULL"
+  $DBCALL -e "UPDATE payone_config_payment_method SET aid='$PAYONE_AID' WHERE aid IS NOT NULL"
+  $DBCALL -e "UPDATE payone_config_payment_method SET \`key\`='$PAYONE_KEY' WHERE \`key\` IS NOT NULL"
 fi
 
 echo "Done."
