@@ -154,13 +154,52 @@ $DBCALL -e "UPDATE core_config_data SET value='contact-magento-dev@trash-mail.co
 $DBCALL -e "UPDATE core_config_data SET value='contact-magento-dev@trash-mail.com' WHERE path='trans_email/ident_custom2/email'"
 
 # increase increment ids
-$DBCALL -e "UPDATE eav_entity_store SET increment_last_id=10*increment_last_id"
+## generate random number from 10 to 100
+factor=$RANDOM;min=10;max=100;let "factor %= $max-$min";let "factor += $min";
+$DBCALL -e "UPDATE eav_entity_store SET increment_last_id=$factor*increment_last_id"
 
 # set test mode everywhere
 $DBCALL -e "UPDATE core_config_data SET value='test' WHERE value LIKE 'live'"
 $DBCALL -e "UPDATE core_config_data SET value='test' WHERE value LIKE 'prod'"
 $DBCALL -e "UPDATE core_config_data SET value=1 WHERE path LIKE '%/testmode'"
+
+# handle PAYONE config
 PAYONE_TABLES=`$DBCALL -e "SHOW TABLES LIKE 'payone_config_payment_method'"`
-[ ! -z "$PAYONE_TABLES" ] && $DBCALL -e "UPDATE payone_config_payment_method SET mode='test' WHERE mode='live'"
+if [ ! -z "$PAYONE_TABLES" ]; then
+  echo "    * Mod PAYONE Config."
+  $DBCALL -e "UPDATE payone_config_payment_method SET mode='test' WHERE mode='live'"
+  if [[ -z "$PAYONE_MID" && -z "$PAYONE_PORTALID" && -z "$PAYONE_AID" && -z "$PAYONE_KEY" ]]; then
+    if [ ! -f "$SCRIPT_DIR/payone.cfg" ]; then
+      echo -e "\E[1;31mCaution: \E[0mYou probably need to change portal IDs and keys for your staging/dev PAYONE payment methods!"
+      echo "Do you want to create it interactively (Y/n)?"
+      read CREATE
+      if [[  "$CREATE" == "y" || "$CREATE" == "Y" || -z "$CREATE" ]]; then
+        echo "Please enter your testing/staging/dev merchant ID: "
+        read PAYONE_MID
+        echo "Please enter your testing/staging/dev portal ID: "
+        read PAYONE_PORTALID
+        echo "Please enter your testing/staging/dev sub account ID: "
+        read PAYONE_AID
+        echo "Please enter your testing/staging/dev security key: "
+        read PAYONE_KEY
+        echo "PAYONE_MID=$PAYONE_MID">>$SCRIPT_DIR/payone.cfg
+        echo "PAYONE_PORTALID=$PAYONE_PORTALID">>$SCRIPT_DIR/payone.cfg
+        echo "PAYONE_AID=$PAYONE_AID">>$SCRIPT_DIR/payone.cfg
+        echo "PAYONE_KEY=$PAYONE_KEY">>$SCRIPT_DIR/payone.cfg
+      fi
+    fi
+    source $SCRIPT_DIR/payone.cfg
+  fi
+
+  $DBCALL -e "UPDATE core_config_data SET value='$MID' WHERE path='payone_general/global/mid'"
+  $DBCALL -e "UPDATE core_config_data SET value='$PORTALID' WHERE path='payone_general/global/portalid'"
+  $DBCALL -e "UPDATE core_config_data SET value='$AID' WHERE path='payone_general/global/aid'"
+  $DBCALL -e "UPDATE core_config_data SET value='$KEY' WHERE path='payone_general/global/key'"
+
+  $DBCALL -e "UPDATE payone_config_payment_method SET mid='$MID' WHERE mid IS NOT NULL"
+  $DBCALL -e "UPDATE payone_config_payment_method SET portalid='$PORTALID' WHERE portalid IS NOT NULL"
+  $DBCALL -e "UPDATE payone_config_payment_method SET aid='$AID' WHERE aid IS NOT NULL"
+  $DBCALL -e "UPDATE payone_config_payment_method SET \`key\`='$KEY' WHERE \`key\` IS NOT NULL"
+fi
 
 echo "Done."
