@@ -2,24 +2,43 @@
 echo "*** This script is anonymizing a DB-dump of the LIVE-DB in the DEMO-Environment ***"
 
 PATH_TO_ROOT=$1
-
 if [[ "$PATH_TO_ROOT" == "" && -f "app/etc/local.xml" ]]; then
   PATH_TO_ROOT="."
 fi
 if [[ "$PATH_TO_ROOT" == "" ]]; then
-  echo "Please specify the path to your Magento store as first parameter"
+  echo "Please specify the path to your Magento store"
   exit 1
 fi
+CONFIG=$PATH_TO_ROOT"/.anonymizer.cfg"
+
+if [[ 1 < $# ]]; then
+  if [[ "-c" == "$1" ]]; then
+    PATH_TO_ROOT=$3
+    CONFIG=$2
+    if [[ ! -f $CONFIG ]]; then
+      echo -e "\E[1;31mCaution: \E[0mConfiguration file $CONFIG does not exist, yet! You will be asked to create it after the anonymization run."
+      echo "Do you want to continue (Y/n)?"; read CONTINUE;
+      if [[ ! -z "$CONTINUE" && "$CONTINUE" != "y" && "$CONTINUE" != "Y" ]]; then
+        exit;
+      fi
+    fi
+  fi
+fi
+
+
+while [[ ! -f $PATH_TO_ROOT/app/etc/local.xml ]]; do
+  echo "$PATH_TO_ROOT is no valid Magento root folder. Please enter the correct path:"
+  read PATH_TO_ROOT
+done
 
 HOST=`grep host $PATH_TO_ROOT/app/etc/local.xml | sed 's/ *<host>\(.*\)<\/host>/\1/' | sed 's/<!\[CDATA\[//' | sed 's/\]\]>//'`
 USER=`grep username $PATH_TO_ROOT/app/etc/local.xml | sed 's/ *<username>\(.*\)<\/username>/\1/' | sed 's/<!\[CDATA\[//' | sed 's/\]\]>//'`
 PASS=`grep password $PATH_TO_ROOT/app/etc/local.xml | sed 's/ *<password>\(.*\)<\/password>/\1/' | sed 's/<!\[CDATA\[//' | sed 's/\]\]>//'`
 NAME=`grep dbname $PATH_TO_ROOT/app/etc/local.xml | sed 's/ *<dbname>\(.*\)<\/dbname>/\1/' | sed 's/<!\[CDATA\[//' | sed 's/\]\]>//'`
 
-SCRIPT_DIR=`dirname $0`
-
-if [[ -f "$SCRIPT_DIR/local.cfg" ]]; then
-  source "$SCRIPT_DIR/local.cfg"
+if [[ -f "$CONFIG" ]]; then
+  echo "Using configuration file $CONFIG"
+  source "$CONFIG"
 fi
 
 DEV_IDENTIFIERS=".*(dev|stage|staging|test|anonym).*"
@@ -53,6 +72,7 @@ if [[ -z "$RESET_ADMIN_PASSWORDS" ]]; then
   echo "  Do you want me to reset admin user passwords (Y/n)?"; read RESET_ADMIN_PASSWORDS
 fi
 if [[ "$RESET_ADMIN_PASSWORDS" == "y" || "$RESET_ADMIN_PASSWORDS" == "Y" || -z "$RESET_ADMIN_PASSWORDS" ]]; then
+  RESET_ADMIN_PASSWORDS="y"
   # admin user
   $DBCALL -e "UPDATE admin_user SET password=MD5(CONCAT(username,'123'))"
 fi
@@ -61,6 +81,7 @@ if [[ -z "$RESET_API_PASSWORDS" ]]; then
   echo "  Do you want me to reset API user passwords (Y/n)?"; read RESET_API_PASSWORDS
 fi
 if [[  "$RESET_API_PASSWORDS" == "y" || "$RESET_API_PASSWORDS" == "Y" || -z "$RESET_API_PASSWORDS" ]]; then
+  RESET_API_PASSWORDS="y"
   # api user
   $DBCALL -e "UPDATE api_user SET api_key=MD5(CONCAT(username,'123'))"
 fi
@@ -82,8 +103,20 @@ $DBCALL -e "UPDATE customer_address_entity_text SET value=CONCAT(entity_id,' tes
 if [[ -z "$KEEP_EMAIL" ]]; then
   echo "  If you want to keep some users credentials, please enter corresponding email addresses quoted by '\"' separated by comma (default: none):"; read KEEP_EMAIL
 fi
-KEEP_EMAIL=`echo $KEEP_EMAIL | grep -oP -e '("[^"]+@[^"]+")(, ?("[^"]+@[^"]+"))*'`
-echo "  Keeping $KEEP_EMAIL"
+ERRORS_KEEP_MAIL=`echo "$KEEP_EMAIL" | grep -vP -e '(\"[^\"]+@[^\"]+\")(, ?(\"[^\"]+@[^\"]+\"))*'`
+if [[ ! -z "$ERRORS_KEEP_MAIL" ]]; then
+  while [[ ! -z "$ERRORS_KEEP_MAIL" ]]; do
+    echo -e "\E[1;31mInvalid input! \E[0mExample: \"foo@bar.com\",\"me@example.com\"."
+    echo "  If you want to keep some users credentials, please enter corresponding email addresses quoted by '\"' separated by comma (default: none):"; read KEEP_EMAIL
+    ERRORS_KEEP_MAIL=`echo "$KEEP_EMAIL" | grep -vP -e '(\"[^\"]+@[^\"]+\")(, ?(\"[^\"]+@[^\"]+\"))*'`
+    if [[ -z "$KEEP_MAIL" ]]; then
+      break
+    fi
+  done
+  if [[ ! -z "$KEEP_EMAIL" ]]; then
+    echo "  Keeping $KEEP_EMAIL"
+  fi
+fi
 
 ENTITY_TYPE="customer"
 $DBCALL -e "UPDATE customer_entity SET email=CONCAT('dev_',entity_id,'@trash-mail.com') WHERE email NOT IN ($KEEP_EMAIL)"
@@ -122,6 +155,7 @@ if [[ -z "$TRUNCATE_LOGS" ]]; then
   echo "  Do you want me to truncate log tables (Y/n)?"; read TRUNCATE_LOGS
 fi
 if [[  "$TRUNCATE_LOGS" == "y" || "$TRUNCATE_LOGS" == "Y" || -z "$TRUNCATE_LOGS" ]]; then
+  TRUNCATE_LOGS="y"
   # truncate unrequired tables
   $DBCALL -e "TRUNCATE log_url"
   $DBCALL -e "TRUNCATE log_url_info"
@@ -136,6 +170,7 @@ if [[ -z "$DEMO_NOTICE" ]]; then
   echo "  Do you want me to enable demo notice (Y/n)?"; read DEMO_NOTICE
 fi
 if [[  "$DEMO_NOTICE" == "y" || "$DEMO_NOTICE" == "Y" || -z "$DEMO_NOTICE" ]]; then
+  DEMO_NOTICE="y"
   $DBCALL -e "UPDATE core_config_data SET value='1' WHERE path='design/head/demonotice'"
 fi
 $DBCALL -e "UPDATE core_config_data SET value='0' WHERE path='dev/css/merge_css_files' OR path='dev/js/merge_files'"
@@ -169,26 +204,15 @@ if [ ! -z "$PAYONE_TABLES" ]; then
   echo "    * Mod PAYONE Config."
   $DBCALL -e "UPDATE payone_config_payment_method SET mode='test' WHERE mode='live'"
   if [[ -z "$PAYONE_MID" && -z "$PAYONE_PORTALID" && -z "$PAYONE_AID" && -z "$PAYONE_KEY" ]]; then
-    if [ ! -f "$SCRIPT_DIR/payone.cfg" ]; then
-      echo -e "\E[1;31mCaution: \E[0mYou probably need to change portal IDs and keys for your staging/dev PAYONE payment methods!"
-      echo "Do you want to create it interactively (Y/n)?"
-      read CREATE
-      if [[  "$CREATE" == "y" || "$CREATE" == "Y" || -z "$CREATE" ]]; then
-        echo "Please enter your testing/staging/dev merchant ID: "
-        read PAYONE_MID
-        echo "Please enter your testing/staging/dev portal ID: "
-        read PAYONE_PORTALID
-        echo "Please enter your testing/staging/dev sub account ID: "
-        read PAYONE_AID
-        echo "Please enter your testing/staging/dev security key: "
-        read PAYONE_KEY
-        echo "PAYONE_MID=$PAYONE_MID">>$SCRIPT_DIR/payone.cfg
-        echo "PAYONE_PORTALID=$PAYONE_PORTALID">>$SCRIPT_DIR/payone.cfg
-        echo "PAYONE_AID=$PAYONE_AID">>$SCRIPT_DIR/payone.cfg
-        echo "PAYONE_KEY=$PAYONE_KEY">>$SCRIPT_DIR/payone.cfg
-      fi
-    fi
-    source $SCRIPT_DIR/payone.cfg
+    echo -e "\E[1;31mCaution: \E[0mYou probably need to change portal IDs and keys for your staging/dev PAYONE payment methods!"
+    echo "Please enter your testing/staging/dev merchant ID: "
+    read PAYONE_MID
+    echo "Please enter your testing/staging/dev portal ID: "
+    read PAYONE_PORTALID
+    echo "Please enter your testing/staging/dev sub account ID: "
+    read PAYONE_AID
+    echo "Please enter your testing/staging/dev security key: "
+    read PAYONE_KEY
   fi
 
   $DBCALL -e "UPDATE core_config_data SET value='$MID' WHERE path='payone_general/global/mid'"
@@ -203,3 +227,20 @@ if [ ! -z "$PAYONE_TABLES" ]; then
 fi
 
 echo "Done."
+
+if [[ ! -f $CONFIG ]]; then
+  echo "Do you want to create an anonymizer configuration file based on your answers (Y/n)?"; read CREATE
+  if [[  "$CREATE" == "y" || "$CREATE" == "Y" || -z "$CREATE" ]]; then
+    echo "RESET_ADMIN_PASSWORDS=$RESET_ADMIN_PASSWORDS">>$CONFIG
+    echo "RESET_API_PASSWORDS=$RESET_API_PASSWORDS">>$CONFIG
+    echo "KEEP_EMAIL=$KEEP_EMAIL">>$CONFIG
+    echo "TRUNCATE_LOGS=$TRUNCATE_LOGS">>$CONFIG
+    echo "DEMO_NOTICE=$DEMO_NOTICE">>$CONFIG
+    if [ ! -z "$PAYONE_TABLES" ]; then
+      echo "PAYONE_MID=$PAYONE_MID">>$CONFIG
+      echo "PAYONE_PORTALID=$PAYONE_PORTALID">>$CONFIG
+      echo "PAYONE_AID=$PAYONE_AID">>$CONFIG
+      echo "PAYONE_KEY=$PAYONE_KEY">>$CONFIG
+    fi
+  fi
+fi
