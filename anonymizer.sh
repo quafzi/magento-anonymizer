@@ -86,70 +86,76 @@ if [[  "$RESET_API_PASSWORDS" == "y" || "$RESET_API_PASSWORDS" == "Y" || -z "$RE
   $DBCALL -e "UPDATE api_user SET api_key=MD5(CONCAT(username,'123'))"
 fi
 
-# customer address
-ENTITY_TYPE="customer_address"
-ATTR_CODE="firstname"
-$DBCALL -e "UPDATE customer_address_entity_varchar SET value=CONCAT('firstname_',entity_id) WHERE attribute_id=(select attribute_id from eav_attribute where attribute_code='$ATTR_CODE' and entity_type_id=(select entity_type_id from eav_entity_type where entity_type_code='$ENTITY_TYPE'))"
-ATTR_CODE="lastname"
-$DBCALL -e "UPDATE customer_address_entity_varchar SET value=CONCAT('lastname_',entity_id) WHERE attribute_id=(select attribute_id from eav_attribute where attribute_code='$ATTR_CODE' and entity_type_id=(select entity_type_id from eav_entity_type where entity_type_code='$ENTITY_TYPE'))"
-ATTR_CODE="telephone"
-$DBCALL -e "UPDATE customer_address_entity_varchar SET value=CONCAT('0341 12345',entity_id) WHERE attribute_id=(select attribute_id from eav_attribute where attribute_code='$ATTR_CODE' and entity_type_id=(select entity_type_id from eav_entity_type where entity_type_code='$ENTITY_TYPE'))"
-ATTR_CODE="fax"
-$DBCALL -e "UPDATE customer_address_entity_varchar SET value=CONCAT('0171 12345',entity_id) WHERE attribute_id=(select attribute_id from eav_attribute where attribute_code='$ATTR_CODE' and entity_type_id=(select entity_type_id from eav_entity_type where entity_type_code='$ENTITY_TYPE'))"
-ATTR_CODE="street"
-$DBCALL -e "UPDATE customer_address_entity_text SET value=CONCAT(entity_id,' test avenue') WHERE attribute_id=(select attribute_id from eav_attribute where attribute_code='$ATTR_CODE' and entity_type_id=(select entity_type_id from eav_entity_type where entity_type_code='$ENTITY_TYPE'))"
-
-# customer account data
-if [[ -z "$KEEP_EMAIL" ]]; then
-  echo "  If you want to keep some users credentials, please enter corresponding email addresses quoted by '\"' separated by comma (default: none):"; read KEEP_EMAIL
+if [[ -z "$ANONYMIZE" ]]; then
+  echo "  Do you want me to anonymize your database (Y/n)?"; read ANONYMIZE
 fi
-ERRORS_KEEP_MAIL=`echo "$KEEP_EMAIL" | grep -vP -e '(\"[^\"]+@[^\"]+\")(, ?(\"[^\"]+@[^\"]+\"))*'`
-if [[ ! -z "$ERRORS_KEEP_MAIL" ]]; then
-  while [[ ! -z "$ERRORS_KEEP_MAIL" ]]; do
-    echo -e "\E[1;31mInvalid input! \E[0mExample: \"foo@bar.com\",\"me@example.com\"."
+if [[ "$ANONYMIZE" == "y" || "$ANONYMIZE" == "Y" || -z "$ANONYMIZE" ]]; then
+  ANONYMIZE="y"
+  # customer address
+  ENTITY_TYPE="customer_address"
+  ATTR_CODE="firstname"
+  $DBCALL -e "UPDATE customer_address_entity_varchar SET value=CONCAT('firstname_',entity_id) WHERE attribute_id=(select attribute_id from eav_attribute where attribute_code='$ATTR_CODE' and entity_type_id=(select entity_type_id from eav_entity_type where entity_type_code='$ENTITY_TYPE'))"
+  ATTR_CODE="lastname"
+  $DBCALL -e "UPDATE customer_address_entity_varchar SET value=CONCAT('lastname_',entity_id) WHERE attribute_id=(select attribute_id from eav_attribute where attribute_code='$ATTR_CODE' and entity_type_id=(select entity_type_id from eav_entity_type where entity_type_code='$ENTITY_TYPE'))"
+  ATTR_CODE="telephone"
+  $DBCALL -e "UPDATE customer_address_entity_varchar SET value=CONCAT('0341 12345',entity_id) WHERE attribute_id=(select attribute_id from eav_attribute where attribute_code='$ATTR_CODE' and entity_type_id=(select entity_type_id from eav_entity_type where entity_type_code='$ENTITY_TYPE'))"
+  ATTR_CODE="fax"
+  $DBCALL -e "UPDATE customer_address_entity_varchar SET value=CONCAT('0171 12345',entity_id) WHERE attribute_id=(select attribute_id from eav_attribute where attribute_code='$ATTR_CODE' and entity_type_id=(select entity_type_id from eav_entity_type where entity_type_code='$ENTITY_TYPE'))"
+  ATTR_CODE="street"
+  $DBCALL -e "UPDATE customer_address_entity_text SET value=CONCAT(entity_id,' test avenue') WHERE attribute_id=(select attribute_id from eav_attribute where attribute_code='$ATTR_CODE' and entity_type_id=(select entity_type_id from eav_entity_type where entity_type_code='$ENTITY_TYPE'))"
+
+  # customer account data
+  if [[ -z "$KEEP_EMAIL" ]]; then
     echo "  If you want to keep some users credentials, please enter corresponding email addresses quoted by '\"' separated by comma (default: none):"; read KEEP_EMAIL
-    ERRORS_KEEP_MAIL=`echo "$KEEP_EMAIL" | grep -vP -e '(\"[^\"]+@[^\"]+\")(, ?(\"[^\"]+@[^\"]+\"))*'`
-    if [[ -z "$KEEP_MAIL" ]]; then
-      break
-    fi
-  done
-  if [[ ! -z "$KEEP_EMAIL" ]]; then
-    echo "  Keeping $KEEP_EMAIL"
   fi
+  ERRORS_KEEP_MAIL=`echo "$KEEP_EMAIL" | grep -vP -e '(\"[^\"]+@[^\"]+\")(, ?(\"[^\"]+@[^\"]+\"))*'`
+  if [[ ! -z "$ERRORS_KEEP_MAIL" ]]; then
+    while [[ ! -z "$ERRORS_KEEP_MAIL" ]]; do
+      echo -e "\E[1;31mInvalid input! \E[0mExample: \"foo@bar.com\",\"me@example.com\"."
+      echo "  If you want to keep some users credentials, please enter corresponding email addresses quoted by '\"' separated by comma (default: none):"; read KEEP_EMAIL
+      ERRORS_KEEP_MAIL=`echo "$KEEP_EMAIL" | grep -vP -e '(\"[^\"]+@[^\"]+\")(, ?(\"[^\"]+@[^\"]+\"))*'`
+      if [[ -z "$KEEP_MAIL" ]]; then
+        break
+      fi
+    done
+    if [[ ! -z "$KEEP_EMAIL" ]]; then
+      echo "  Keeping $KEEP_EMAIL"
+    fi
+  fi
+
+  ENTITY_TYPE="customer"
+  $DBCALL -e "UPDATE customer_entity SET email=CONCAT('dev_',entity_id,'@trash-mail.com') WHERE email NOT IN ($KEEP_EMAIL)"
+  ATTR_CODE="firstname"
+  $DBCALL -e "UPDATE customer_entity_varchar SET value=CONCAT('firstname_',entity_id) WHERE attribute_id=(select attribute_id from eav_attribute where attribute_code='$ATTR_CODE' and entity_type_id=(select entity_type_id from eav_entity_type where entity_type_code='$ENTITY_TYPE'))"
+  ATTR_CODE="lastname"
+  $DBCALL -e "UPDATE customer_entity_varchar SET value=CONCAT('lastname_',entity_id) WHERE attribute_id=(select attribute_id from eav_attribute where attribute_code='$ATTR_CODE' and entity_type_id=(select entity_type_id from eav_entity_type where entity_type_code='$ENTITY_TYPE'))"
+  ATTR_CODE="password_hash"
+  $DBCALL -e "UPDATE customer_entity_varchar v SET value=MD5(CONCAT('dev_',entity_id,'@trash-mail.com')) WHERE attribute_id=(select attribute_id from eav_attribute where attribute_code='$ATTR_CODE' and entity_type_id=(select entity_type_id from eav_entity_type where entity_type_code='$ENTITY_TYPE')) AND (SELECT email FROM customer_entity e WHERE e.entity_id=v.entity_id AND email NOT IN ($KEEP_EMAIL))"
+
+  # credit memo
+  $DBCALL -e "UPDATE sales_flat_creditmemo_grid SET billing_name='Demo User'"
+
+  # invoices
+  $DBCALL -e "UPDATE sales_flat_invoice_grid SET billing_name='Demo User'"
+
+  # shipments
+  $DBCALL -e "UPDATE sales_flat_shipment_grid SET shipping_name='Demo User'"
+
+  # quotes
+  $DBCALL -e "UPDATE sales_flat_quote SET customer_email=CONCAT('dev_',entity_id,'@trash-mail.com'), customer_firstname='Demo', customer_lastname='User', customer_middlename='Dev', remote_ip='192.168.1.1', password_hash=NULL WHERE customer_email NOT IN ($KEEP_EMAIL)"
+  $DBCALL -e "UPDATE sales_flat_quote_address SET firstname='Demo', lastname='User', company=NULL, telephone=CONCAT('0123-4567', address_id), street=CONCAT('Devstreet ',address_id)"
+
+  # orders
+  $DBCALL -e "UPDATE sales_flat_order SET customer_email=CONCAT('dev_',entity_id,'@trash-mail.com'), customer_firstname='Demo', customer_lastname='User', customer_middlename='Dev'"
+  $DBCALL -e "UPDATE sales_flat_order_address SET firstname='Demo', lastname='User', company=NULL, telephone=CONCAT('0123-4567', entity_id), street=CONCAT('Devstreet ',entity_id)"
+  $DBCALL -e "UPDATE sales_flat_order_grid SET shipping_name='Demo D. User', billing_name='Demo D. User'"
+
+  # payments
+  $DBCALL -e "UPDATE sales_flat_order_payment SET additional_data=NULL, additional_information=NULL"
+
+  # newsletter
+  $DBCALL -e "UPDATE newsletter_subscriber SET subscriber_email=CONCAT('dev_newsletter_',subscriber_id,'@trash-mail.com') WHERE subscriber_email NOT IN ($KEEP_EMAIL)"
 fi
-
-ENTITY_TYPE="customer"
-$DBCALL -e "UPDATE customer_entity SET email=CONCAT('dev_',entity_id,'@trash-mail.com') WHERE email NOT IN ($KEEP_EMAIL)"
-ATTR_CODE="firstname"
-$DBCALL -e "UPDATE customer_entity_varchar SET value=CONCAT('firstname_',entity_id) WHERE attribute_id=(select attribute_id from eav_attribute where attribute_code='$ATTR_CODE' and entity_type_id=(select entity_type_id from eav_entity_type where entity_type_code='$ENTITY_TYPE'))"
-ATTR_CODE="lastname"
-$DBCALL -e "UPDATE customer_entity_varchar SET value=CONCAT('lastname_',entity_id) WHERE attribute_id=(select attribute_id from eav_attribute where attribute_code='$ATTR_CODE' and entity_type_id=(select entity_type_id from eav_entity_type where entity_type_code='$ENTITY_TYPE'))"
-ATTR_CODE="password_hash"
-$DBCALL -e "UPDATE customer_entity_varchar v SET value=MD5(CONCAT('dev_',entity_id,'@trash-mail.com')) WHERE attribute_id=(select attribute_id from eav_attribute where attribute_code='$ATTR_CODE' and entity_type_id=(select entity_type_id from eav_entity_type where entity_type_code='$ENTITY_TYPE')) AND (SELECT email FROM customer_entity e WHERE e.entity_id=v.entity_id AND email NOT IN ($KEEP_EMAIL))"
-
-# credit memo
-$DBCALL -e "UPDATE sales_flat_creditmemo_grid SET billing_name='Demo User'"
-
-# invoices
-$DBCALL -e "UPDATE sales_flat_invoice_grid SET billing_name='Demo User'"
-
-# shipments
-$DBCALL -e "UPDATE sales_flat_shipment_grid SET shipping_name='Demo User'"
-
-# quotes
-$DBCALL -e "UPDATE sales_flat_quote SET customer_email=CONCAT('dev_',entity_id,'@trash-mail.com'), customer_firstname='Demo', customer_lastname='User', customer_middlename='Dev', remote_ip='192.168.1.1', password_hash=NULL WHERE customer_email NOT IN ($KEEP_EMAIL)"
-$DBCALL -e "UPDATE sales_flat_quote_address SET firstname='Demo', lastname='User', company=NULL, telephone=CONCAT('0123-4567', address_id), street=CONCAT('Devstreet ',address_id)"
-
-# orders
-$DBCALL -e "UPDATE sales_flat_order SET customer_email=CONCAT('dev_',entity_id,'@trash-mail.com'), customer_firstname='Demo', customer_lastname='User', customer_middlename='Dev'"
-$DBCALL -e "UPDATE sales_flat_order_address SET firstname='Demo', lastname='User', company=NULL, telephone=CONCAT('0123-4567', entity_id), street=CONCAT('Devstreet ',entity_id)"
-$DBCALL -e "UPDATE sales_flat_order_grid SET shipping_name='Demo D. User', billing_name='Demo D. User'"
-
-# payments
-$DBCALL -e "UPDATE sales_flat_order_payment SET additional_data=NULL, additional_information=NULL"
-
-# newsletter
-$DBCALL -e "UPDATE newsletter_subscriber SET subscriber_email=CONCAT('dev_newsletter_',subscriber_id,'@trash-mail.com') WHERE subscriber_email NOT IN ($KEEP_EMAIL)"
 
 if [[ -z "$TRUNCATE_LOGS" ]]; then
   echo "  Do you want me to truncate log tables (Y/n)?"; read TRUNCATE_LOGS
