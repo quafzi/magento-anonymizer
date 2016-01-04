@@ -207,7 +207,7 @@ function genRandomChar() {
   printf \\$(printf '%03o' $(($factor)))
 }
 PREFIX="`genRandomChar``genRandomChar``genRandomChar`"
-$DBCALL -e "UPDATE eav_entity_store SET increment_last_id=NULL, increment_prefix=CONCAT(store_id, '-', $PREFIX, '-')"
+$DBCALL -e "UPDATE eav_entity_store SET increment_last_id=NULL, increment_prefix=CONCAT(store_id, '-', '$PREFIX', '-')"
 
 # set test mode everywhere
 $DBCALL -e "UPDATE core_config_data SET value='test' WHERE value LIKE 'live'"
