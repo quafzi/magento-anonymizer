@@ -147,7 +147,7 @@ if [[ "$ANONYMIZE" == "y" || "$ANONYMIZE" == "Y" || -z "$ANONYMIZE" ]]; then
 
   # orders
   $DBCALL -e "UPDATE sales_flat_order SET customer_email=CONCAT('dev_',entity_id,'@trash-mail.com'), customer_firstname='Demo', customer_lastname='User', customer_middlename='Dev'"
-  $DBCALL -e "UPDATE sales_flat_order_address SET firstname='Demo', lastname='User', company=NULL, telephone=CONCAT('0123-4567', entity_id), street=CONCAT('Devstreet ',entity_id)"
+  $DBCALL -e "UPDATE sales_flat_order_address SET email=CONCAT('dev_',entity_id,'@trash-mail.com'), firstname='Demo', lastname='User', company=NULL, telephone=CONCAT('0123-4567', entity_id), street=CONCAT('Devstreet ',entity_id)"
   $DBCALL -e "UPDATE sales_flat_order_grid SET shipping_name='Demo D. User', billing_name='Demo D. User'"
 
   # payments
