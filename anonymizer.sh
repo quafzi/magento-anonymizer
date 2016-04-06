@@ -183,10 +183,6 @@ $DBCALL -e "UPDATE core_config_data SET value='0' WHERE path='dev/css/merge_css_
 $DBCALL -e "UPDATE core_config_data SET value='0' WHERE path='google/analytics/active'"
 $DBCALL -e "UPDATE core_config_data SET value='NOINDEX,NOFOLLOW' WHERE path='design/head/default_robots'"
 
-# set base urls
-$DBCALL -e "UPDATE core_config_data SET value='{{base_url}}' WHERE path='web/unsecure/base_url'"
-$DBCALL -e "UPDATE core_config_data SET value='{{base_url}}' WHERE path='web/secure/base_url'"
-
 # set mail receivers
 $DBCALL -e "UPDATE core_config_data SET value='contact-magento-dev@trash-mail.com' WHERE path='trans_email/ident_general/email'"
 $DBCALL -e "UPDATE core_config_data SET value='contact-magento-dev@trash-mail.com' WHERE path='trans_email/ident_sales/email'"
