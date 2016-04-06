@@ -41,21 +41,6 @@ if [[ -f "$CONFIG" ]]; then
   source "$CONFIG"
 fi
 
-DEV_IDENTIFIERS=".*(dev|stage|staging|test|anonym).*"
-if [[ $NAME =~ $DEV_IDENTIFIERS ]]; then
-    echo "We are on the TEST environment, everything is fine"
-else
-    echo ""
-    echo "IT SEEMS THAT WE ARE ON THE PRODUCTION ENVIRONMENT!"
-    echo ""
-    echo "If you are sure, this is a test environment, please type 'test' to continue"
-    read force
-    if [[ "$force" != "test" ]]; then
-        echo "Canceled"
-        exit 2
-    fi
-fi
-
 if [ "$PASS" = "" ]; then
     DBCALL="mysql -u$USER -h$HOST $NAME"
     DBDUMPCALL="mysqldump -u$USER -h$HOST $NAME"
