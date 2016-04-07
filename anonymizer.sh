@@ -41,21 +41,6 @@ if [[ -f "$CONFIG" ]]; then
   source "$CONFIG"
 fi
 
-DEV_IDENTIFIERS=".*(dev|stage|staging|test|anonym).*"
-if [[ $NAME =~ $DEV_IDENTIFIERS ]]; then
-    echo "We are on the TEST environment, everything is fine"
-else
-    echo ""
-    echo "IT SEEMS THAT WE ARE ON THE PRODUCTION ENVIRONMENT!"
-    echo ""
-    echo "If you are sure, this is a test environment, please type 'test' to continue"
-    read force
-    if [[ "$force" != "test" ]]; then
-        echo "Canceled"
-        exit 2
-    fi
-fi
-
 if [ "$PASS" = "" ]; then
     DBCALL="mysql -u$USER -h$HOST $NAME"
     DBDUMPCALL="mysqldump -u$USER -h$HOST $NAME"
@@ -182,10 +167,6 @@ fi
 $DBCALL -e "UPDATE core_config_data SET value='0' WHERE path='dev/css/merge_css_files' OR path='dev/js/merge_files'"
 $DBCALL -e "UPDATE core_config_data SET value='0' WHERE path='google/analytics/active'"
 $DBCALL -e "UPDATE core_config_data SET value='NOINDEX,NOFOLLOW' WHERE path='design/head/default_robots'"
-
-# set base urls
-$DBCALL -e "UPDATE core_config_data SET value='{{base_url}}' WHERE path='web/unsecure/base_url'"
-$DBCALL -e "UPDATE core_config_data SET value='{{base_url}}' WHERE path='web/secure/base_url'"
 
 # set mail receivers
 $DBCALL -e "UPDATE core_config_data SET value='contact-magento-dev@trash-mail.com' WHERE path='trans_email/ident_general/email'"
