@@ -203,9 +203,58 @@ $DBCALL "UPDATE core_config_data SET value='contact-magento-dev@trash-mail.com' 
 $DBCALL "UPDATE core_config_data SET value='contact-magento-dev@trash-mail.com' WHERE path='trans_email/ident_custom2/email'"
 
 # set base urls
-$DBCALL "UPDATE core_config_data SET value='{{base_url}}' WHERE path='web/unsecure/base_url'"
-$DBCALL "UPDATE core_config_data SET value='{{base_url}}' WHERE path='web/secure/base_url'"
+if [[ -z "$RESET_BASE_URLS" ]]; then
+  echo "  Do you want to reset base urls (Y/n)?"; read RESET_BASE_URLS
+fi
+if [[ "$RESET_BASE_URLS" == "y" || "$RESET_BASE_URLS" == "Y" || -z "$RESET_BASE_URLS" ]]; then
+  RESET_BASE_URLS="y"
+  if [[ -z "$SPECIFIC_BASE_URLS" ]]; then
+    echo "  Do you want to specify base urls explicitly (Y/n)?"; read SPECIFIC_BASE_URLS
+  fi
+  if [[ "$SPECIFIC_BASE_URLS" == "y" || "$SPECIFIC_BASE_URLS" == "Y" || -z "$SPECIFIC_BASE_URLS" ]]; then
+    SPECIFIC_BASE_URLS="y"
+    if [[ -z "$SCOPES" ]]; then
+      SCOPES=()
+      SCOPE_IDS=()
+      BASE_URLS=()
 
+      SCOPE_ID="(to be specified)"
+      while [[ "$SCOPE_ID" != "" ]]; do
+        echo "Enter scope id [Hit enter to finish]: "
+        read SCOPE_ID
+        if [[ "$SCOPE_ID" != "" ]]; then
+          echo "Enter scope [stores]: "
+          read SCOPE
+          if [[ "$SCOPE" == "" ]]; then
+            SCOPE="stores"
+          fi
+          echo "Enter base url: "
+          read BASE_URL
+
+          SCOPES=("${SCOPES[@]}" $SCOPE)
+          SCOPE_IDS=("${SCOPE_IDS[@]}" $SCOPE_ID)
+          BASE_URLS=("${BASE_URLS[@]}" $BASE_URL)
+        fi
+      done
+    else
+      echo "using preconfigured scope base urls"
+    fi
+
+    for i in "${!SCOPES[@]}"; do
+      SCOPE=${SCOPES[$i]}
+      SCOPE_ID=${SCOPE_IDS[$i]}
+      BASE_URL=${BASE_URLS[$i]}
+      echo "UPDATE core_config_data SET value='$BASE_URL' WHERE path IN ('web/unsecure/base_url', 'web/secure/base_url') AND SCOPE_ID=$SCOPE_ID AND SCOPE='$SCOPE'"
+      #$DBCALL "UPDATE core_config_data SET value='$BASE_URL' WHERE path IN ('web/unsecure/base_url', 'web/secure/base_url') AND SCOPE_ID=$SCOPE_ID AND SCOPE='$SCOPE'"
+    done
+  else
+    SPECIFIC_BASE_URLS="n"
+    $DBCALL "UPDATE core_config_data SET value='{{base_url}}' WHERE path='web/unsecure/base_url'"
+    $DBCALL "UPDATE core_config_data SET value='{{base_url}}' WHERE path='web/secure/base_url'"
+  fi
+else
+  RESET_BASE_URLS="n"
+fi
 
 # increase increment ids
 ## generate random number from 10 to 100
@@ -272,6 +321,13 @@ if [[ ! -f $CONFIG ]]; then
       echo "PAYONE_PORTALID=$PAYONE_PORTALID">>$CONFIG
       echo "PAYONE_AID=$PAYONE_AID">>$CONFIG
       echo "PAYONE_KEY=$PAYONE_KEY">>$CONFIG
+    fi
+    echo "RESET_BASE_URLS=$RESET_BASE_URLS">>$CONFIG
+    echo "SPECIFIC_BASE_URLS=$SPECIFIC_BASE_URLS">>$CONFIG
+    if [[ ! -z $SCOPES ]]; then
+      echo "SCOPES=(${SCOPES[@]})">>$CONFIG
+      echo "SCOPE_IDS=(${SCOPE_IDS[@]})">>$CONFIG
+      echo "BASE_URLS=(${BASE_URLS[@]})">>$CONFIG
     fi
   fi
 fi
