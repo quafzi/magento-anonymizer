@@ -41,7 +41,9 @@ if [[ -f "$CONFIG" ]]; then
   source "$CONFIG"
 fi
 
-DEV_IDENTIFIERS=".*(dev|stage|staging|test|anonym).*"
+if [[ -z "$DEV_IDENTIFIERS" ]]; then
+  DEV_IDENTIFIERS=".*(dev|stage|staging|test|anonym).*"
+fi
 if [[ $NAME =~ $DEV_IDENTIFIERS ]]; then
     echo "We are on the TEST environment, everything is fine"
 else
@@ -63,8 +65,6 @@ else
     DBCALL="mysql -u$USER -p$PASS -h$HOST $NAME -e"
     DBDUMPCALL="mysqldump -u$USER -p$PASS -h$HOST $NAME"
 fi
-
-
 
 echo "* Step 1: Anonymize Names and eMails"
 
@@ -248,6 +248,7 @@ echo "Done."
 if [[ ! -f $CONFIG ]]; then
   echo "Do you want to create an anonymizer configuration file based on your answers (Y/n)?"; read CREATE
   if [[  "$CREATE" == "y" || "$CREATE" == "Y" || -z "$CREATE" ]]; then
+    echo "DEV_IDENTIFIERS=$DEV_IDENTIFIERS">>$CONFIG
     echo "RESET_ADMIN_PASSWORDS=$RESET_ADMIN_PASSWORDS">>$CONFIG
     echo "RESET_API_PASSWORDS=$RESET_API_PASSWORDS">>$CONFIG
     echo "KEEP_EMAIL=$KEEP_EMAIL">>$CONFIG
