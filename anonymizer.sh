@@ -75,6 +75,8 @@ if [[ "$RESET_ADMIN_PASSWORDS" == "y" || "$RESET_ADMIN_PASSWORDS" == "Y" || -z "
   RESET_ADMIN_PASSWORDS="y"
   # admin user
   $DBCALL "UPDATE admin_user SET password=MD5(CONCAT(username,'123'))"
+else
+  RESET_ADMIN_PASSWORDS="n"
 fi
 
 if [[ -z "$RESET_API_PASSWORDS" ]]; then
@@ -84,6 +86,8 @@ if [[  "$RESET_API_PASSWORDS" == "y" || "$RESET_API_PASSWORDS" == "Y" || -z "$RE
   RESET_API_PASSWORDS="y"
   # api user
   $DBCALL "UPDATE api_user SET api_key=MD5(CONCAT(username,'123'))"
+else
+  RESET_API_PASSWORDS="n"
 fi
 
 if [[ -z "$ANONYMIZE" ]]; then
@@ -109,9 +113,9 @@ if [[ "$ANONYMIZE" == "y" || "$ANONYMIZE" == "Y" || -z "$ANONYMIZE" ]]; then
     echo "  If you want to keep some users credentials, please enter corresponding email addresses quoted by '\"' separated by comma (default: none):"; read KEEP_EMAIL
   fi
   ERRORS_KEEP_MAIL=`echo "$KEEP_EMAIL" | grep -vP -e '(\"[^\"]+@[^\"]+\")(, ?(\"[^\"]+@[^\"]+\"))*'`
-  if [[ ! -z "$ERRORS_KEEP_MAIL" ]]; then
-    while [[ ! -z "$ERRORS_KEEP_MAIL" ]]; do
-      echo -e "\E[1;31mInvalid input! \E[0mExample: \"foo@bar.com\",\"me@example.com\"."
+  if [[ ! -z "$ERRORS_KEEP_MAIL" && "$KEEP_EMAIL" != '"none"' ]]; then
+    while [[ ! -z "$errors_keep_mail" ]]; do
+      echo -e "\e[1;31minvalid input! \E[0mExample: \"foo@bar.com\",\"me@example.com\"."
       echo "  If you want to keep some users credentials, please enter corresponding email addresses quoted by '\"' separated by comma (default: none):"; read KEEP_EMAIL
       ERRORS_KEEP_MAIL=`echo "$KEEP_EMAIL" | grep -vP -e '(\"[^\"]+@[^\"]+\")(, ?(\"[^\"]+@[^\"]+\"))*'`
       if [[ -z "$KEEP_MAIL" ]]; then
@@ -121,6 +125,8 @@ if [[ "$ANONYMIZE" == "y" || "$ANONYMIZE" == "Y" || -z "$ANONYMIZE" ]]; then
     if [[ ! -z "$KEEP_EMAIL" ]]; then
       echo "  Keeping $KEEP_EMAIL"
     fi
+  else
+    KEEP_EMAIL='"none"'
   fi
 
   ENTITY_TYPE="customer"
@@ -155,6 +161,8 @@ if [[ "$ANONYMIZE" == "y" || "$ANONYMIZE" == "Y" || -z "$ANONYMIZE" ]]; then
 
   # newsletter
   $DBCALL "UPDATE newsletter_subscriber SET subscriber_email=CONCAT('dev_newsletter_',subscriber_id,'@trash-mail.com') WHERE subscriber_email NOT IN ($KEEP_EMAIL)"
+else
+  ANONYMIZE="n"
 fi
 
 if [[ -z "$TRUNCATE_LOGS" ]]; then
@@ -168,6 +176,8 @@ if [[  "$TRUNCATE_LOGS" == "y" || "$TRUNCATE_LOGS" == "Y" || -z "$TRUNCATE_LOGS"
   $DBCALL "TRUNCATE log_visitor"
   $DBCALL "TRUNCATE log_visitor_info"
   $DBCALL "TRUNCATE report_event"
+else
+  TRUNCATE_LOGS="n"
 fi
 
 echo "* Step 2: Mod Config."
@@ -178,6 +188,8 @@ fi
 if [[  "$DEMO_NOTICE" == "y" || "$DEMO_NOTICE" == "Y" || -z "$DEMO_NOTICE" ]]; then
   DEMO_NOTICE="y"
   $DBCALL "UPDATE core_config_data SET value='1' WHERE path='design/head/demonotice'"
+else
+  DEMO_NOTICE="n"
 fi
 $DBCALL "UPDATE core_config_data SET value='0' WHERE path='dev/css/merge_css_files' OR path='dev/js/merge_files'"
 $DBCALL "UPDATE core_config_data SET value='0' WHERE path='google/analytics/active'"
@@ -252,6 +264,7 @@ if [[ ! -f $CONFIG ]]; then
     echo "RESET_ADMIN_PASSWORDS=$RESET_ADMIN_PASSWORDS">>$CONFIG
     echo "RESET_API_PASSWORDS=$RESET_API_PASSWORDS">>$CONFIG
     echo "KEEP_EMAIL=$KEEP_EMAIL">>$CONFIG
+    echo "ANONYMIZE=$ANONYMIZE">>$CONFIG
     echo "TRUNCATE_LOGS=$TRUNCATE_LOGS">>$CONFIG
     echo "DEMO_NOTICE=$DEMO_NOTICE">>$CONFIG
     if [ ! -z "$PAYONE_TABLES" ]; then
