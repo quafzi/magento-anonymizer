@@ -244,8 +244,10 @@ if [[ "$RESET_BASE_URLS" == "y" || "$RESET_BASE_URLS" == "Y" || -z "$RESET_BASE_
       SCOPE=${SCOPES[$i]}
       SCOPE_ID=${SCOPE_IDS[$i]}
       BASE_URL=${BASE_URLS[$i]}
-      echo "UPDATE core_config_data SET value='$BASE_URL' WHERE path IN ('web/unsecure/base_url', 'web/secure/base_url') AND SCOPE_ID=$SCOPE_ID AND SCOPE='$SCOPE'"
-      #$DBCALL "UPDATE core_config_data SET value='$BASE_URL' WHERE path IN ('web/unsecure/base_url', 'web/secure/base_url') AND SCOPE_ID=$SCOPE_ID AND SCOPE='$SCOPE'"
+      $DBCALL "UPDATE core_config_data SET value='$BASE_URL' WHERE path IN ('web/unsecure/base_url', 'web/secure/base_url') AND SCOPE_ID=$SCOPE_ID AND SCOPE='$SCOPE'"
+      $DBCALL "UPDATE core_config_data SET value='${BASE_URL}media/' WHERE path IN ('web/unsecure/base_media_url', 'web/secure/base_media_url') AND SCOPE_ID=$SCOPE_ID AND SCOPE='$SCOPE'"
+      COOKIE_DOMAIN=`echo $BASE_URL|sed -r 's/https?:\/\/([^:\/]*)[\/:].*/\1/g'`
+      $DBCALL "UPDATE core_config_data SET value='$COOKIE_DOMAIN' WHERE path = 'web/cookie/cookie_domain' AND SCOPE_ID=$SCOPE_ID AND SCOPE='$SCOPE'"
     done
   else
     SPECIFIC_BASE_URLS="n"
