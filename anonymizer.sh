@@ -60,10 +60,8 @@ fi
 
 if [ "$PASS" = "" ]; then
     DBCALL="mysql -u$USER -h$HOST $NAME -e"
-    DBDUMPCALL="mysqldump -u$USER -h$HOST $NAME"
 else
     DBCALL="mysql -u$USER -p$PASS -h$HOST $NAME -e"
-    DBDUMPCALL="mysqldump -u$USER -p$PASS -h$HOST $NAME"
 fi
 
 echo "* Step 1: Anonymize Names and eMails"
