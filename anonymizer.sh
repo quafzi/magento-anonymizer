@@ -31,10 +31,10 @@ while [[ ! -f $PATH_TO_ROOT/app/etc/local.xml ]]; do
   read PATH_TO_ROOT
 done
 
-HOST=`grep host $PATH_TO_ROOT/app/etc/local.xml | sed 's/ *<host>\(.*\)<\/host>/\1/' | sed 's/<!\[CDATA\[//' | sed 's/\]\]>//'`
-USER=`grep username $PATH_TO_ROOT/app/etc/local.xml | sed 's/ *<username>\(.*\)<\/username>/\1/' | sed 's/<!\[CDATA\[//' | sed 's/\]\]>//'`
-PASS=`grep password $PATH_TO_ROOT/app/etc/local.xml | sed 's/ *<password>\(.*\)<\/password>/\1/' | sed 's/<!\[CDATA\[//' | sed 's/\]\]>//'`
-NAME=`grep dbname $PATH_TO_ROOT/app/etc/local.xml | sed 's/ *<dbname>\(.*\)<\/dbname>/\1/' | sed 's/<!\[CDATA\[//' | sed 's/\]\]>//'`
+HOST=`grep host $PATH_TO_ROOT/app/etc/local.xml | grep CDATA | sed 's/ *<host>\(.*\)<\/host>/\1/' | sed 's/<!\[CDATA\[//' | sed 's/\]\]>//'`
+USER=`grep username $PATH_TO_ROOT/app/etc/local.xml | grep CDATA | sed 's/ *<username>\(.*\)<\/username>/\1/' | sed 's/<!\[CDATA\[//' | sed 's/\]\]>//'`
+PASS=`grep password $PATH_TO_ROOT/app/etc/local.xml | grep CDATA | sed 's/ *<password>\(.*\)<\/password>/\1/' | sed 's/<!\[CDATA\[//' | sed 's/\]\]>//'`
+NAME=`grep dbname $PATH_TO_ROOT/app/etc/local.xml | grep CDATA | sed 's/ *<dbname>\(.*\)<\/dbname>/\1/' | sed 's/<!\[CDATA\[//' | sed 's/\]\]>//'`
 
 if [[ -f "$CONFIG" ]]; then
   echo "Using configuration file $CONFIG"
